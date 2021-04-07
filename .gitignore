@@ -19,4 +19,5 @@ yarn-error.log*
 *.sln
 *.sw?
 
-secrets.js
+mongoDbSetup.js
+pushApiSetup.js

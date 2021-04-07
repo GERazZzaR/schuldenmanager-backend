@@ -9,7 +9,8 @@ const debtSchema = new mongoose.Schema({
     archived: Boolean,
     isPositive: Boolean,
     position: {},
-    picture: String
+    picture: String,
+    reminder: Date
 }, { _id: false })
 
 const Debt = mongoose.model('Debt', debtSchema)

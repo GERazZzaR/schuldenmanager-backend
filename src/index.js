@@ -7,7 +7,8 @@ const fs = require('fs')
 const port = 8000;
 
 // Import credentials
-const connection = require('./secrets');
+const connection = require('./mongoDbSetup');
+const pushApi = require('./pushApiSetup')
 
 // Import Models
 const Debt = require("../models/debt");
@@ -22,6 +23,13 @@ db.once("open", () => {
   console.log("Connection to Mongoose Succeeded");
 });
 
+// Setup Web-Push Api
+const push = require('web-push');
+const schedule = require('node-schedule');
+const vapidKeys = pushApi.vapidKeys;
+const sub = pushApi.sub;
+push.setVapidDetails('mailto:julian@scheinerj.de', vapidKeys.publicKey, vapidKeys.privateKey);
+
 // Setup Multer
 const storage = multer.diskStorage({
   // destination for files
@@ -30,7 +38,7 @@ const storage = multer.diskStorage({
   },
   // add back the extension
   filename: function(request, file, callback) {
-    callback(null, Date.now() + "_" + file.originalname)
+    callback(null, file.originalname)
   }
 })
 
@@ -41,7 +49,6 @@ const upload = multer({
     fieldSize: 1024*1024*3
   }
 });
-
 
 //* APIs *
 
@@ -58,19 +65,17 @@ app.post('/image', upload.single('image'), (req, res) => {
   res.send({
     success: true,
     message: 'Picture saved successfully!',
-    imageName: req.file.filename
   })
 })
 
 // Get Image
 app.get('/image/:name', (req, res) => {
-  console.log(req.params.name)
   res.sendFile(__dirname + '/uploads/images/' + req.params.name)
 })
 
 // Fetch all Debts
 app.get('/debts', (req, res) => {
-  Debt.find({}, 'person amount description date archived isPositive position picture', (error, debts) => {
+  Debt.find({}, 'person amount description date archived isPositive position picture reminder', (error, debts) => {
     if (error) { console.error(error); }
     res.send({
       debts: debts
@@ -107,7 +112,7 @@ app.post('/debt', (req, res) => {
 
 // Archive a debt
 app.put('/toggle-archive-debt/:id', (req, res) => {
-  Debt.findById(req.params.id, 'person amount description date archived isPositive position picture', (error, debt) => {
+  Debt.findById(req.params.id, 'person amount description date archived isPositive position picture reminder', (error, debt) => {
     if (error) { console.error(error); }
     debt.archived = !debt.archived;
     
@@ -124,7 +129,7 @@ app.put('/toggle-archive-debt/:id', (req, res) => {
 
 // Update debt
 app.put('/debt/:id', (req, res) => {
-  Debt.findById(req.params.id, 'person amount description date archived isPositive position picture', (error, debt) => {
+  Debt.findById(req.params.id, 'person amount description date archived isPositive position picture reminder', (error, debt) => {
     if (error) { console.error(error); }
     let reqBody = req.body;
 
@@ -153,10 +158,9 @@ app.put('/debt/:id', (req, res) => {
 
 // Delete debt
 app.delete('/debt/:id', (req, res) => {
-  Debt.findById(req.params.id, 'person amount description date archived isPositive position picture', (error, debt) => {
+  Debt.findById(req.params.id, 'person amount description date archived isPositive position picture reminder', (error, debt) => {
     if (error) { console.error(error); }
-    let reqBody = req.body;
-    if(debt.picture !== reqBody.picture){
+    if(debt.picture !== req.body.picture){
       deleteImage(debt.picture);
     }
   })
@@ -177,6 +181,32 @@ const deleteImage = (name) => {
     }
   })
 }
+
+// Add reminder to Debt
+app.put('/reminder/:id', (req, res) => {
+  Debt.findById(req.params.id, 'person amount isPositive reminder', (error, debt) => {
+    if (error) { console.error(error); }
+    debt.reminder = req.body.reminder;
+    if(req.body.reminder) {
+      startJob(debt.id, debt.person, debt.amount, debt.isPositive, debt.reminder);
+      delteFromQueue(debt.id)
+      jobsInQueue.push(debt.id);
+    } else {
+      if(jobsInQueue.includes(debt.id)) delteFromQueue(debt.id);
+    }
+    console.log('Jobs in Queue: ' + jobsInQueue);
+    
+
+    debt.save(function (err) {
+      if (err) {
+        res.send(err)
+      }
+      res.send({
+        success: true
+      })
+    })
+  })
+})
 
 // Fetch all Settings
 app.get('/settings', (req, res) => {
@@ -204,6 +234,32 @@ app.put('/setting/:id', (req, res) => {
   })
 })
 
+let jobsInQueue = new Array();
+
+let startJob = (id, person, amount, isPositive, reminder) => {
+  schedule.scheduleJob(reminder, function(){
+    console.log('Timer ist fällig')
+    if(jobsInQueue.includes(id)) {
+      console.log('Timer existiert noch: ' + jobsInQueue);
+      delteFromQueue(id)
+      console.log('DAnach sieht das Array so aus: ' + jobsInQueue);
+      Debt.findById(id, 'reminder', (error, debt) => {
+        debt.reminder = "",
+        debt.save()
+      })
+      let text = isPositive ? person + " schuldet mir " + amount + " €" : person + " hat mir " + amount + " € geliehen";
+      push.sendNotification(sub, text);
+    }
+  });
+}
+
+let delteFromQueue = (id) => {
+  let indexToDelete = jobsInQueue.indexOf(id);
+  jobsInQueue.splice(indexToDelete, 1);
+}
+
+
+
 app.listen(port, () => {
-    console.log("App listening on port " + port)
-})
+  console.log("App listening on port " + port)
+});
