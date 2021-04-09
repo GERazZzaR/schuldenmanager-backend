@@ -1,6 +1,9 @@
 {
   "name": "schuldenmanager-backend",
   "version": "1.0.0",
+  "engines": {
+    "node": "12.2.0"
+  },
   "description": "Backend Debt Manager",
   "main": "index.js",
   "scripts": {
