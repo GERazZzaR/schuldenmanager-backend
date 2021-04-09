@@ -8,7 +8,7 @@ const port = process.env.PORT || 8000;
 
 // Import credentials
 const connection = require('./mongoDbSetup');
-// const pushApi = require('./pushApiSetup')
+const pushApi = require('./pushApiSetup')
 
 // Import Models
 const Debt = require("../models/debt");
@@ -24,11 +24,11 @@ db.once("open", () => {
 });
 
 // Setup Web-Push Api
-// const push = require('web-push');
-// const schedule = require('node-schedule');
-// const vapidKeys = pushApi.vapidKeys;
-// const sub = pushApi.sub;
-// push.setVapidDetails('mailto:julian@scheinerj.de', vapidKeys.publicKey, vapidKeys.privateKey);
+const push = require('web-push');
+const schedule = require('node-schedule');
+const vapidKeys = pushApi.vapidKeys;
+const sub = pushApi.sub;
+push.setVapidDetails('mailto:julian@scheinerj.de', vapidKeys.publicKey, vapidKeys.privateKey);
 
 // Setup Multer
 const storage = multer.diskStorage({
@@ -248,7 +248,7 @@ let startJob = (id, person, amount, isPositive, reminder) => {
         debt.save()
       })
       let text = isPositive ? person + " schuldet mir " + amount + " €" : person + " hat mir " + amount + " € geliehen";
-      // push.sendNotification(sub, text);
+      push.sendNotification(sub, text);
     }
   });
 }
