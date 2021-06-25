@@ -27,7 +27,7 @@ db.once("open", () => {
 const push = require('web-push');
 const schedule = require('node-schedule');
 const vapidKeys = pushApi.vapidKeys;
-const sub = pushApi.sub;
+let sub;
 push.setVapidDetails('mailto:julian@scheinerj.de', vapidKeys.publicKey, vapidKeys.privateKey);
 
 // Setup Multer
@@ -210,8 +210,7 @@ app.put('/reminder/:id', (req, res) => {
 
 // Subscribe
 app.post('/subscribe', (req, res) => {
-  let reqBody = req.body;
-  console.log(reqBody.endpoint);
+  sub = req.body
 })
 
 // Fetch all Settings
