@@ -249,7 +249,7 @@ let startJob = (id, person, amount, isPositive, reminder) => {
       })
       let text = isPositive ? person + " schuldet mir " + amount + " €" : person + " hat mir " + amount + " € geliehen";
       console.log(text)
-      push.sendNotification(sub, text);
+      push.sendNotification(sub, text).catch(error => console.log(error));
     }
   });
 }
