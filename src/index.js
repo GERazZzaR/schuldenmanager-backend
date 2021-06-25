@@ -208,6 +208,13 @@ app.put('/reminder/:id', (req, res) => {
   })
 })
 
+// Subscribe
+app.post('/subscribe', (req, res) => {
+  let reqBody = req.body;
+  console.log(reqBody);
+
+})
+
 // Fetch all Settings
 app.get('/settings', (req, res) => {
   Setting.find({}, 'name checked prompt', (error, settings) => {
