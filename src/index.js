@@ -4,11 +4,8 @@ const cors = require('cors');
 const morgan = require('morgan');
 const multer = require('multer');
 const fs = require('fs')
+const dotenv = require('dotenv').config();
 const port = process.env.PORT || 8000;
-
-// Import credentials
-const connection = require('./mongoDbSetup');
-const pushApi = require('./pushApiSetup')
 
 // Import Models
 const Debt = require("../models/debt");
@@ -16,7 +13,7 @@ const Setting = require("../models/setting");
 
 // Setup Mongoose Connection
 const mongoose = require('mongoose');
-mongoose.connect(connection,  {useNewUrlParser: true, useUnifiedTopology: true});
+mongoose.connect('mongodb+srv://' + process.env.usernameMongo + ':' + process.env.password + process.env.cluster,  {useNewUrlParser: true, useUnifiedTopology: true});
 const db = mongoose.connection;
 db.on("error", console.error.bind(console, "connection error"));
 db.once("open", () => {
@@ -26,9 +23,8 @@ db.once("open", () => {
 // Setup Web-Push Api
 const push = require('web-push');
 const schedule = require('node-schedule');
-const vapidKeys = pushApi.vapidKeys;
 let sub;
-push.setVapidDetails('mailto:julian@scheinerj.de', vapidKeys.publicKey, vapidKeys.privateKey);
+push.setVapidDetails(process.env.pushUsername, process.env.publicVapidKey, process.env.privateVapidKey);
 
 // Setup Multer
 const storage = multer.diskStorage({
@@ -210,7 +206,11 @@ app.put('/reminder/:id', (req, res) => {
 
 // Subscribe
 app.post('/subscribe', (req, res) => {
+  if (error) { console.error(error); }
   sub = req.body
+  res.send({
+    success: true
+  })
 })
 
 // Fetch all Settings
@@ -243,17 +243,13 @@ let jobsInQueue = new Array();
 
 let startJob = (id, person, amount, isPositive, reminder) => {
   schedule.scheduleJob(reminder, function(){
-    console.log('Timer ist fällig')
     if(jobsInQueue.includes(id)) {
-      console.log('Timer existiert noch: ' + jobsInQueue);
       delteFromQueue(id)
-      console.log('DAnach sieht das Array so aus: ' + jobsInQueue);
       Debt.findById(id, 'reminder', (error, debt) => {
         debt.reminder = "",
         debt.save()
       })
       let text = isPositive ? person + " schuldet mir " + amount + " €" : person + " hat mir " + amount + " € geliehen";
-      console.log(text)
       push.sendNotification(sub, text).catch(error => console.log(error));
     }
   });
