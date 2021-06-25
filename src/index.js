@@ -211,8 +211,7 @@ app.put('/reminder/:id', (req, res) => {
 // Subscribe
 app.post('/subscribe', (req, res) => {
   let reqBody = req.body;
-  console.log("test" + reqBody + "test2");
-
+  console.log(reqBody);
 })
 
 // Fetch all Settings
