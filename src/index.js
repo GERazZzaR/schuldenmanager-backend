@@ -207,6 +207,7 @@ app.put('/reminder/:id', (req, res) => {
 // Subscribe
 app.post('/subscribe', (req, res) => {
   sub = req.body
+  console.log(sub)
   res.send({
     success: true
   })
