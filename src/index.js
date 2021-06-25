@@ -24,6 +24,7 @@ db.once("open", () => {
 const push = require('web-push');
 const schedule = require('node-schedule');
 let sub;
+push.setGCMAPIKey(process.env.gcmKey);
 push.setVapidDetails(process.env.pushUsername, process.env.publicVapidKey, process.env.privateVapidKey);
 
 // Setup Multer
