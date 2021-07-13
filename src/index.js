@@ -256,6 +256,7 @@ let startJob = (id, person, amount, isPositive, reminder) => {
       })
       let text = isPositive ? person + " schuldet mir " + amount + " €" : person + " hat mir " + amount + " € geliehen";
       subscriptions.forEach(sub => {
+        console.log("sende nachricht an " + sub)
         push.sendNotification(sub, text).catch(error => console.log(error));
       })
     }
