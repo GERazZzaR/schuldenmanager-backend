@@ -157,9 +157,9 @@ app.put('/debt/:id', (req, res) => {
 app.delete('/debt/:id', (req, res) => {
   Debt.findById(req.params.id, 'person amount description date archived isPositive position picture reminder', (error, debt) => {
     if (error) { console.error(error); }
-    if(debt.picture !== req.body.picture){
-      deleteImage(debt.picture);
-    }
+    // if(debt.picture !== req.body.picture){
+    //   deleteImage(debt.picture);
+    // }
   })
   Debt.deleteOne({
     _id: req.params.id
