@@ -212,7 +212,6 @@ app.post('/subscribe', (req, res) => {
     if (sub.endpoint == req.body.endpoint) addSubscription = false;
   })
   if (addSubscription === true) subscriptions.push(req.body)
-  console.log(subscriptions)
   res.send({
     success: true
   })
@@ -256,7 +255,6 @@ let startJob = (id, person, amount, isPositive, reminder) => {
       })
       let text = isPositive ? person + " schuldet mir " + amount + " €" : person + " hat mir " + amount + " € geliehen";
       subscriptions.forEach(sub => {
-        console.log("sende nachricht an " + sub)
         push.sendNotification(sub, text).catch(error => console.log(error));
       })
     }
