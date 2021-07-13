@@ -23,7 +23,7 @@ db.once("open", () => {
 // Setup Web-Push Api
 const push = require('web-push');
 const schedule = require('node-schedule');
-let sub;
+let subscriptions = [];
 push.setGCMAPIKey(process.env.gcmKey);
 push.setVapidDetails(process.env.pushUsername, process.env.publicVapidKey, process.env.privateVapidKey);
 
@@ -207,8 +207,12 @@ app.put('/reminder/:id', (req, res) => {
 
 // Subscribe
 app.post('/subscribe', (req, res) => {
-  sub = req.body
-  console.log(sub)
+  let addSubscription = true;
+  subscriptions.forEach(sub => {
+    if (sub.endpoint == req.body.endpoint) addSubscription = false;
+  })
+  if (addSubscription === true) subscriptions.push(req.body)
+  console.log(subscriptions)
   res.send({
     success: true
   })
@@ -251,7 +255,9 @@ let startJob = (id, person, amount, isPositive, reminder) => {
         debt.save()
       })
       let text = isPositive ? person + " schuldet mir " + amount + " €" : person + " hat mir " + amount + " € geliehen";
-      push.sendNotification(sub, text).catch(error => console.log(error));
+      subscriptions.forEach(sub => {
+        push.sendNotification(sub, text).catch(error => console.log(error));
+      })
     }
   });
 }
