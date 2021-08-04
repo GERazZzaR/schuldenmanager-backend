@@ -47,8 +47,11 @@ const upload = multer({
   }
 });
 
-//* APIs *
+/*
+ APIs 
+*/
 
+//Express + settings
 const app = express();
 app.use(morgan('combined'))
 app.use(cors());
@@ -171,6 +174,7 @@ app.delete('/debt/:id', (req, res) => {
   })
 })
 
+//Delete Image
 const deleteImage = (name) => {
   fs.unlink('./src/uploads/images/' + name, (err) => {
     if(err) {
@@ -184,16 +188,16 @@ app.put('/reminder/:id', (req, res) => {
   Debt.findById(req.params.id, 'person amount isPositive reminder', (error, debt) => {
     if (error) { console.error(error); }
     debt.reminder = req.body.reminder;
+    // If reminder is in request -> add to queue
     if(req.body.reminder) {
       startJob(debt.id, debt.person, debt.amount, debt.isPositive, debt.reminder);
       delteFromQueue(debt.id)
       jobsInQueue.push(debt.id);
+    // If reminder is NOT in request -> delete from queue
     } else {
       if(jobsInQueue.includes(debt.id)) delteFromQueue(debt.id);
     }
-    console.log('Jobs in Queue: ' + jobsInQueue);
     
-
     debt.save(function (err) {
       if (err) {
         res.send(err)
@@ -205,7 +209,7 @@ app.put('/reminder/:id', (req, res) => {
   })
 })
 
-// Subscribe
+// Subscribe Notifications
 app.post('/subscribe', (req, res) => {
   let addSubscription = true;
   subscriptions.forEach(sub => {
@@ -243,17 +247,22 @@ app.put('/setting/:id', (req, res) => {
   })
 })
 
+//Push Jobs-Queue Array
 let jobsInQueue = new Array();
 
+//start push notification job
 let startJob = (id, person, amount, isPositive, reminder) => {
+  //when reminder is in time -> start push notification
   schedule.scheduleJob(reminder, function(){
     if(jobsInQueue.includes(id)) {
       delteFromQueue(id)
+      //Delete reminder date from database
       Debt.findById(id, 'reminder', (error, debt) => {
         debt.reminder = "",
         debt.save()
       })
       let text = isPositive ? person + " schuldet mir " + amount + " €" : person + " hat mir " + amount + " € geliehen";
+      // Send to all subscribed devices
       subscriptions.forEach(sub => {
         push.sendNotification(sub, text).catch(error => console.log(error));
       })
@@ -261,6 +270,7 @@ let startJob = (id, person, amount, isPositive, reminder) => {
   });
 }
 
+// Delete Notification from queue
 let delteFromQueue = (id) => {
   let indexToDelete = jobsInQueue.indexOf(id);
   jobsInQueue.splice(indexToDelete, 1);
